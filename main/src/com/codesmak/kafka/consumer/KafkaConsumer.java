@@ -15,7 +15,7 @@ public class KafkaConsumer {
         return latch;
     }
 
-    @KafkaListener(topics = "${kafka.topic.boot}")
+    @KafkaListener(topics = "boot.q")
     public void receive(ConsumerRecord<?, ?> consumerRecord) {
         System.out.println("received payload='{}'" + consumerRecord.toString());
         latch.countDown();
