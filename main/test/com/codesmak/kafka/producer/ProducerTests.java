@@ -24,16 +24,14 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
-import static org.hamcrest.Matchers.hasValue;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
+
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
 @DirtiesContext
 public class ProducerTests {
-
-    @Autowired KafkaProducer producer;
+    
     private KafkaTemplate<Integer,String> template;
     private KafkaMessageListenerContainer<ConsumerFactory<Integer,String>,ContainerProperties> container;
     private BlockingQueue<ConsumerRecord<Integer, String>> records;
@@ -44,58 +42,52 @@ public class ProducerTests {
 
     @Before
     public void setup() throws Exception {
-        Map<String, Object> senderProperties =
-                KafkaTestUtils.senderProps(kafka.getBrokersAsString());
 
         Map<String,Object> consumerProps = KafkaTestUtils.consumerProps("123","true",kafka);
 
-        ProducerFactory<Integer, String> producerFactory =
-                new DefaultKafkaProducerFactory<Integer, String>(senderProperties);
-
-        ConsumerFactory<Integer, String> consumerFactory =
-                new DefaultKafkaConsumerFactory<Integer, String>(consumerProps);
-
-        ContainerProperties containerProps = new ContainerProperties(producerQueue);
-
-        template = new KafkaTemplate<Integer,String>(producerFactory);
-        template.setDefaultTopic(producerQueue);
-
-        container = new KafkaMessageListenerContainer(consumerFactory,containerProps);
-
         records = new LinkedBlockingQueue<>();
 
+        container = new KafkaMessageListenerContainer(getConsumerFactory(consumerProps),new ContainerProperties(producerQueue));
         container.setupMessageListener(new MessageListener<Integer, String>() {
             @Override
             public void onMessage(ConsumerRecord<Integer, String> record) {
-                //LOGGER.debug("test-listener received message='{}'", record.toString());
                 System.out.println("test-listener received message='{}'"+record.toString());
                 records.add(record);
             }
         });
-
         container.start();
 
         ContainerTestUtils.waitForAssignment(container, kafka.getPartitionsPerTopic());
+
     }
 
-
     @After
-    public void shutdown(){
+    public void shutdown() {
         container.stop();
     }
 
     @Test
     public void testProducer() throws InterruptedException {
 
-        //producer.send(producerQueue,"hello from testing");
-        template.send(producerQueue,23,"hello from Travis...");
+        String kafkaRecordData = "Invoice record FSSAR";
 
-        Thread.sleep(10000);
+        Map<String, Object> senderProperties = KafkaTestUtils.senderProps(kafka.getBrokersAsString());
 
-        ConsumerRecord<Integer,String> recordList = records.poll(10, TimeUnit.SECONDS);
+        template = new KafkaTemplate<Integer,String>(getProducerFactory(senderProperties));
+        template.send(producerQueue,23,kafkaRecordData);
 
-        assertEquals(recordList.value(),"hello from Travis...");
-        assertEquals(recordList.key().intValue(),23);
+        ConsumerRecord<Integer,String> kafkaRecord = records.poll(10, TimeUnit.SECONDS);
+
+        assertEquals(kafkaRecord.key().intValue(),23);
+        assertEquals(kafkaRecord.value(),kafkaRecordData);
     }
 
+
+    private DefaultKafkaConsumerFactory<Integer, String> getConsumerFactory(Map<String, Object> consumerProps) {
+        return new DefaultKafkaConsumerFactory<Integer, String>(consumerProps);
+    }
+
+    private DefaultKafkaProducerFactory<Integer, String> getProducerFactory(Map<String, Object> senderProperties) {
+        return new DefaultKafkaProducerFactory<Integer, String>(senderProperties);
+    }
 }
