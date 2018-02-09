@@ -17,7 +17,7 @@ public class ConsumerTest {
     public void testConsumingTwitterData(){
 
         System.out.println("REC COUNT: " );
-        //do you want to keep this?
+        //do you want to keep this? What about this?
 
     }
 }
