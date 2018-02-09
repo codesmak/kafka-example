@@ -1,13 +1,11 @@
 package com.codesmak.kafka.producer;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.hamcrest.MatcherAssert;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.kafka.core.*;
 import org.springframework.kafka.listener.KafkaMessageListenerContainer;
@@ -31,14 +29,14 @@ import static org.junit.Assert.assertEquals;
 @SpringBootTest
 @DirtiesContext
 public class ProducerTests {
-    
+
     private KafkaTemplate<Integer,String> template;
     private KafkaMessageListenerContainer<ConsumerFactory<Integer,String>,ContainerProperties> container;
     private BlockingQueue<ConsumerRecord<Integer, String>> records;
-    private static final String producerQueue = "producer.q";
+    private static final String producerTopic = "producer.q";
 
     @ClassRule
-    public static KafkaEmbedded kafka = new KafkaEmbedded(1,true,producerQueue);
+    public static KafkaEmbedded kafka = new KafkaEmbedded(1,true,producerTopic);
 
     @Before
     public void setup() throws Exception {
@@ -47,7 +45,7 @@ public class ProducerTests {
 
         records = new LinkedBlockingQueue<>();
 
-        container = new KafkaMessageListenerContainer(getConsumerFactory(consumerProps),new ContainerProperties(producerQueue));
+        container = new KafkaMessageListenerContainer(getConsumerFactory(consumerProps),new ContainerProperties(producerTopic));
         container.setupMessageListener(new MessageListener<Integer, String>() {
             @Override
             public void onMessage(ConsumerRecord<Integer, String> record) {
@@ -74,7 +72,7 @@ public class ProducerTests {
         Map<String, Object> senderProperties = KafkaTestUtils.senderProps(kafka.getBrokersAsString());
 
         template = new KafkaTemplate<Integer,String>(getProducerFactory(senderProperties));
-        template.send(producerQueue,23,kafkaRecordData);
+        template.send(producerTopic,23,kafkaRecordData);
 
         ConsumerRecord<Integer,String> kafkaRecord = records.poll(10, TimeUnit.SECONDS);
 

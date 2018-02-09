@@ -3,6 +3,5 @@ spring:
     consumer:
       auto-offset-reset: earliest
       group-id: boot
-      key.serializer: "org.apache.kafka.common.serialization.StringDeserializer"
     topic:
       boot: boot.t
